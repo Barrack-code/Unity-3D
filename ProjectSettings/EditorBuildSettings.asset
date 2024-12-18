@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Assets/Loading screen.unity
+    guid: 0abcc3fc47b07294b9968d7061fae338
+  - enabled: 1
+    path: Assets/Assets/MainMenu.unity
+    guid: bf33906b1e5468d459be03d1cddcdfaf
+  - enabled: 1
+    path: Assets/Assets/Tunnel.unity
+    guid: fbd936df64cddfa439b29a03b4b00b99
+  - enabled: 1
+    path: Assets/Assets/CIRCUIT.unity
+    guid: 43943af7c30ebf641b0f346761bc7bef
+  m_configObjects:
+    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  m_UseUCBPForAssetBundles: 0
