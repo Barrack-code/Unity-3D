@@ -1,5 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class CheckpointSystem : MonoBehaviour
 {
@@ -33,6 +36,7 @@ public class CheckpointSystem : MonoBehaviour
     // Draw checkpoint visualization in editor
     void OnDrawGizmos()
     {
+#if UNITY_EDITOR
         foreach (Transform child in transform)
         {
             Checkpoint cp = child.GetComponent<Checkpoint>();
@@ -52,8 +56,9 @@ public class CheckpointSystem : MonoBehaviour
                 Gizmos.DrawCube(Vector3.zero, size);
                 
                 // Draw checkpoint number
-                UnityEditor.Handles.Label(child.position, "CP " + cp.checkpointNumber);
+                Handles.Label(child.position, "CP " + cp.checkpointNumber);
             }
         }
+#endif
     }
 }

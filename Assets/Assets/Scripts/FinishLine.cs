@@ -10,26 +10,14 @@ public class FinishLine : MonoBehaviour
     public GameObject player2GoldPanel;   // Bottom screen gold medal
     public GameObject player2SilverPanel; // Bottom screen silver medal
 
-    [Header("Back to Menu")]
-    public GameObject backButton;         // Button to return to main menu
-    public float showBackButtonDelay = 2f; // Delay before showing back button
-
     private bool car1Finished = false;
     private bool car2Finished = false;
     private bool hasFirstPlace = false;
 
     void Start()
     {
-        // Hide all panels and back button at start
+        // Hide all panels at start
         HideAllPanels();
-        if (backButton) backButton.SetActive(false);
-
-        // Make sure the back button is set up
-        Button btn = backButton?.GetComponent<Button>();
-        if (btn != null)
-        {
-            btn.onClick.AddListener(BackToMainMenu);
-        }
     }
 
     private void HideAllPanels()
@@ -75,7 +63,6 @@ public class FinishLine : MonoBehaviour
                     hasFirstPlace = true;
                     ShowWinPanel(true, true);  // Show gold for player 1
                     ShowWinPanel(false, false); // Show silver for player 2/AI
-                    Invoke("ShowBackButton", showBackButtonDelay);
                 }
                 else
                 {
@@ -94,7 +81,6 @@ public class FinishLine : MonoBehaviour
                     hasFirstPlace = true;
                     ShowWinPanel(false, true);  // Show gold for player 2/AI
                     ShowWinPanel(true, false);  // Show silver for player 1
-                    Invoke("ShowBackButton", showBackButtonDelay);
                 }
                 else
                 {
@@ -127,23 +113,5 @@ public class FinishLine : MonoBehaviour
             if (isGold && player2GoldPanel) player2GoldPanel.SetActive(true);
             else if (!isGold && player2SilverPanel) player2SilverPanel.SetActive(true);
         }
-    }
-
-    private void ShowBackButton()
-    {
-        if (backButton) backButton.SetActive(true);
-    }
-
-    private void BackToMainMenu()
-    {
-        // Clean up RaceManager before loading new scene
-        RaceManager raceManager = Object.FindAnyObjectByType<RaceManager>();
-        if (raceManager != null)
-        {
-            raceManager.CleanupForSceneChange();
-        }
-
-        // Load main menu scene
-        SceneManager.LoadScene("MainMenu");
     }
 }

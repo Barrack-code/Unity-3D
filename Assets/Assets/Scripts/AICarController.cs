@@ -13,11 +13,11 @@ public class AICarController : MonoBehaviour
     [SerializeField] private float heightOffset = 1f;
     [SerializeField] private float accelerationTime = 2f; // Time to reach full speed
     [SerializeField] private float initialSpeedMultiplier = 0.2f; // Start at 20% speed
-    [SerializeField] private float finalSpeedMultiplier = 1.3f;   // End at 130% speed
+    [SerializeField] private float finalSpeedMultiplier = 1.1f;   // End at 110% speed
 
     [Header("Track-Specific Settings")]
-    [SerializeField] private float circuitSpeedMultiplier = 0.4f; // Even slower on Circuit track (30% speed)
-    [SerializeField] private float tunnelSpeedMultiplier = 1.0f;  // Normal speed on Tunnel track
+    [SerializeField] private float circuitSpeedMultiplier = 0.4f; // Slower on Circuit track
+    [SerializeField] private float tunnelSpeedMultiplier = 1.0f;  // Slightly slower on Tunnel track for better control
 
     [Header("Audio Settings")]
     [SerializeField] private AudioSource engineAudio;

@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class RaceManager : MonoBehaviour
 {
@@ -20,8 +21,14 @@ public class RaceManager : MonoBehaviour
     [Tooltip("Distance of the camera behind the car")]
     public float cameraDistance = 8f;
 
+    [Header("Pause Menu")]
+    public GameObject pauseMenuPanel;  // Assign in inspector
+    public Button resumeButton;        // Assign in inspector
+    public Button mainMenuButton;      // Assign in inspector
+
     // Race state
     public bool HasRaceStarted { get; private set; }
+    private bool isPaused = false;
     
     // References to spawned cars (marked as SerializeField to maintain Unity serialization)
     [SerializeField] private GameObject player1Car;
@@ -29,6 +36,7 @@ public class RaceManager : MonoBehaviour
 
     private CheckpointManager checkpointManager;
     private bool isAIMode = false;
+    private AudioSource[] carAudioSources;
 
     private void Start()
     {
@@ -40,6 +48,18 @@ public class RaceManager : MonoBehaviour
         if (countdownText != null)
         {
             countdownText.gameObject.SetActive(true);
+        }
+
+        // Initialize pause menu
+        if (pauseMenuPanel != null)
+        {
+            pauseMenuPanel.SetActive(false);
+            
+            if (resumeButton != null)
+                resumeButton.onClick.AddListener(ResumeGame);
+                
+            if (mainMenuButton != null)
+                mainMenuButton.onClick.AddListener(ReturnToMainMenu);
         }
 
         // Get the checkpoint manager
@@ -145,15 +165,32 @@ public class RaceManager : MonoBehaviour
         var cameraObj = new GameObject(isPlayer1 ? "Player1Camera" : "Player2Camera");
         var camera = cameraObj.AddComponent<Camera>();
         
-        // Add audio listener only to Player 1's camera
-        if (isPlayer1)
+        if (isAIMode)
         {
-            cameraObj.AddComponent<AudioListener>();
-            camera.rect = new Rect(0, 0.5f, 1, 0.5f);  // Top half
+            // Single player mode - use full screen for player 1
+            if (isPlayer1)
+            {
+                cameraObj.AddComponent<AudioListener>();
+                camera.rect = new Rect(0, 0, 1, 1); // Full screen
+            }
+            else
+            {
+                // AI camera is disabled in single player mode
+                camera.enabled = false;
+            }
         }
         else
         {
-            camera.rect = new Rect(0, 0, 1, 0.5f);     // Bottom half
+            // Multiplayer mode - use split screen
+            if (isPlayer1)
+            {
+                cameraObj.AddComponent<AudioListener>();
+                camera.rect = new Rect(0, 0.5f, 1, 0.5f);  // Top half
+            }
+            else
+            {
+                camera.rect = new Rect(0, 0, 1, 0.5f);     // Bottom half
+            }
         }
 
         // Position camera relative to car
@@ -171,13 +208,17 @@ public class RaceManager : MonoBehaviour
         // Add AI controller
         var aiController = car.AddComponent<AICarController>();
         
-        // Setup camera for AI car (bottom half)
-        var cameraObj = new GameObject("AICamera");
-        var camera = cameraObj.AddComponent<Camera>();
-        camera.rect = new Rect(0, 0, 1, 0.5f);  // Bottom half
-        cameraObj.transform.position = car.transform.position - car.transform.forward * cameraDistance + Vector3.up * cameraHeight;
-        cameraObj.transform.LookAt(car.transform);
-        cameraObj.transform.parent = car.transform;
+        // In single player mode, we don't need the AI camera
+        if (!isAIMode)
+        {
+            // Setup camera for AI car (bottom half) - only in multiplayer
+            var cameraObj = new GameObject("AICamera");
+            var camera = cameraObj.AddComponent<Camera>();
+            camera.rect = new Rect(0, 0, 1, 0.5f);  // Bottom half
+            cameraObj.transform.position = car.transform.position - car.transform.forward * cameraDistance + Vector3.up * cameraHeight;
+            cameraObj.transform.LookAt(car.transform);
+            cameraObj.transform.parent = car.transform;
+        }
     }
 
     private IEnumerator CountdownAndStartRace()
@@ -244,7 +285,93 @@ public class RaceManager : MonoBehaviour
         HasRaceStarted = true;
     }
 
-    public void CleanupForSceneChange()
+    private void Update()
+    {
+        // Handle pause input
+        if (Input.GetKeyDown(KeyCode.Escape) && HasRaceStarted)
+        {
+            if (isPaused)
+                ResumeGame();
+            else
+                PauseGame();
+        }
+
+        // Handle manual resets (only when not paused)
+        if (!isPaused)
+        {
+            if (Input.GetKeyDown(KeyCode.R) && player1Car != null)
+            {
+                ResetCar("Player1Car");
+            }
+            if (Input.GetKeyDown(KeyCode.P) && player2Car != null && !isAIMode)
+            {
+                ResetCar("Player2Car");
+            }
+        }
+    }
+
+    private void PauseGame()
+    {
+        isPaused = true;
+        Time.timeScale = 0f;  // Freeze the game
+        
+        // Disable car controls
+        DisableCarControls();
+        
+        // Mute all car audio
+        MuteCarAudio(true);
+        
+        // Show pause menu
+        if (pauseMenuPanel != null)
+            pauseMenuPanel.SetActive(true);
+    }
+
+    private void ResumeGame()
+    {
+        isPaused = false;
+        Time.timeScale = 1f;  // Resume normal time
+        
+        // Re-enable car controls
+        EnableCarControls();
+        
+        // Unmute car audio
+        MuteCarAudio(false);
+        
+        // Hide pause menu
+        if (pauseMenuPanel != null)
+            pauseMenuPanel.SetActive(false);
+    }
+
+    private void MuteCarAudio(bool mute)
+    {
+        // Get all car audio sources if not already cached
+        if (carAudioSources == null || carAudioSources.Length == 0)
+        {
+            if (player1Car != null)
+            {
+                var player1Audio = player1Car.GetComponentsInChildren<AudioSource>();
+                var player2Audio = player2Car != null ? player2Car.GetComponentsInChildren<AudioSource>() : new AudioSource[0];
+                
+                carAudioSources = new AudioSource[player1Audio.Length + player2Audio.Length];
+                player1Audio.CopyTo(carAudioSources, 0);
+                player2Audio.CopyTo(carAudioSources, player1Audio.Length);
+            }
+        }
+
+        // Mute/unmute all car audio sources
+        if (carAudioSources != null)
+        {
+            foreach (var audio in carAudioSources)
+            {
+                if (audio != null)
+                {
+                    audio.mute = mute;
+                }
+            }
+        }
+    }
+
+    private void DisableCarControls()
     {
         if (player1Car != null)
         {
@@ -260,7 +387,7 @@ public class RaceManager : MonoBehaviour
                 if (aiController != null)
                 {
                     aiController.enabled = false;
-                    aiController.StopRacing();
+                    if (isPaused) aiController.StopRacing();
                 }
             }
             else
@@ -269,7 +396,56 @@ public class RaceManager : MonoBehaviour
                 if (backupController != null) backupController.enabled = false;
             }
         }
+    }
 
+    private void EnableCarControls()
+    {
+        if (player1Car != null)
+        {
+            var backupController = player1Car.GetComponent<Backup>();
+            if (backupController != null) backupController.enabled = true;
+        }
+
+        if (player2Car != null)
+        {
+            if (isAIMode)
+            {
+                var aiController = player2Car.GetComponent<AICarController>();
+                if (aiController != null)
+                {
+                    aiController.enabled = true;
+                    aiController.StartRacing();
+                }
+            }
+            else
+            {
+                var backupController = player2Car.GetComponent<Backup>();
+                if (backupController != null) backupController.enabled = true;
+            }
+        }
+    }
+
+    public void ReturnToMainMenu()
+    {
+        // Ensure time scale is reset before changing scenes
+        Time.timeScale = 1f;
+        
+        // Save any necessary game state here if needed
+        
+        // Load the main menu scene
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    private void OnDestroy()
+    {
+        // Clean up car references when scene is unloaded
+        player1Car = null;
+        player2Car = null;
+    }
+
+    private void OnDisable()
+    {
+        // Additional cleanup when component is disabled
         player1Car = null;
         player2Car = null;
     }
@@ -363,33 +539,6 @@ public class RaceManager : MonoBehaviour
             // Removed code here
             Debug.Log($"{playerName} passed checkpoint: {checkpoint.name}");
         }
-    }
-
-    private void Update()
-    {
-        // Handle manual resets
-        if (Input.GetKeyDown(KeyCode.R) && player1Car != null)
-        {
-            ResetCar("Player1Car");
-        }
-        if (Input.GetKeyDown(KeyCode.P) && player2Car != null && !isAIMode)
-        {
-            ResetCar("Player2Car");
-        }
-    }
-
-    private void OnDestroy()
-    {
-        // Clean up car references when scene is unloaded
-        player1Car = null;
-        player2Car = null;
-    }
-
-    private void OnDisable()
-    {
-        // Additional cleanup when component is disabled
-        player1Car = null;
-        player2Car = null;
     }
 
     // Helper class to handle input for both players

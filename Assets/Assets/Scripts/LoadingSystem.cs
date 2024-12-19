@@ -75,6 +75,14 @@ public class LoadingSystem : MonoBehaviour
 
     public static void LoadScene(string sceneName)
     {
+        if (Instance == null)
+        {
+            Debug.LogError("LoadingSystem Instance is null! Make sure there is a LoadingSystem prefab in your scene.");
+            // Fallback to direct scene loading
+            SceneManager.LoadScene(sceneName);
+            return;
+        }
+
         Instance.gameObject.SetActive(true);
         Instance.StartCoroutine(Instance.LoadSceneAsync(sceneName));
     }
